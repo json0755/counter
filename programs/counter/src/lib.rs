@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-// 定义程序ID
+// 定义程序ID  Program 账户（你的计数器程序账户）
 declare_id!("6VoRpsz5cXnXiBKwqqo4Z1P15RrdrSbKZFCts4kmwSrC");
 
 #[program]
@@ -37,7 +37,7 @@ pub struct Initialize<'info> {
     )]
     pub counter: Account<'info, Counter>,
     
-    // 支付费用的用户
+    // 支付费用的用户  签名者账户
     #[account(mut)]
     pub user: Signer<'info>,
     

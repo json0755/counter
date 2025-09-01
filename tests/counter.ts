@@ -20,6 +20,7 @@ describe("counter", () => {
     const tx = await program.methods.initialize()
       .accountsPartial({
         counter: counterPda,
+        //系统程序账户
         user: program.provider.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       })

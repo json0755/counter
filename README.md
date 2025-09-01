@@ -23,8 +23,11 @@
 counter/
 ├── programs/counter/src/
 │   └── lib.rs              # 主程序逻辑
+├── scripts/                # 自定义测试脚本
+│   ├── initialize.ts       # 初始化计数器脚本
+│   └── increment.ts        # 递增计数器脚本
 ├── tests/
-│   └── counter.ts          # 测试文件
+│   └── counter.ts          # Anchor 测试文件
 ├── target/
 │   ├── deploy/             # 编译后的程序文件
 │   ├── idl/                # 接口定义文件
@@ -69,25 +72,122 @@ counter/
 
 ## 使用方法
 
-### 1. 启动本地验证器
+### 完整操作步骤
+
+#### 1. 环境准备
 
 ```bash
-solana-test-validator
+# 关闭代理（如果有的话）
+proxy_off
+
+# 配置 Solana CLI 指向本地网络
+solana config set --url localhost
+
+# 检查配置
+solana config get
 ```
 
-### 2. 构建程序
+#### 2. 启动本地验证器
+
+```bash
+# 清理旧的测试账本并启动验证器
+rm -rf test-ledger && solana-test-validator
+```
+
+验证器启动后，你会看到类似以下的输出：
+```
+Ledger location: test-ledger
+Log: test-ledger/validator.log
+Identity: <validator-identity>
+Genesis Hash: <genesis-hash>
+Version: 2.3.8
+Shred Version: <shred-version>
+Gossip Address: 127.0.0.1:1024
+TPU Address: 127.0.0.1:1027
+JSON RPC URL: http://127.0.0.1:8899
+WebSocket PubSub URL: ws://127.0.0.1:8900
+```
+
+#### 3. 验证连接
+
+在新终端中验证验证器是否正常运行：
+
+```bash
+# 检查集群版本
+solana cluster-version
+
+# 应该返回类似：2.3.8
+```
+
+#### 4. 构建程序
 
 ```bash
 anchor build
 ```
 
-### 3. 部署程序
+#### 5. 部署程序
 
 ```bash
 anchor deploy
 ```
 
-### 4. 运行测试
+部署成功后会显示：
+```
+Deploying cluster: http://127.0.0.1:8899
+Upgrade authority: /home/user/.config/solana/id.json
+Deploying program "counter"...
+Program path: /path/to/counter/target/deploy/counter.so...
+Program Id: <PROGRAM_ID>
+
+Signature: <TRANSACTION_SIGNATURE>
+
+Deploy success
+```
+
+#### 6. 使用自定义脚本测试
+
+项目包含两个测试脚本：`scripts/initialize.ts` 和 `scripts/increment.ts`
+
+**设置环境变量：**
+```bash
+export ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
+export ANCHOR_WALLET=/home/user/.config/solana/id.json
+```
+
+**运行初始化脚本（仅需运行一次）：**
+```bash
+npx ts-node scripts/initialize.ts
+```
+
+预期输出：
+```
+开始初始化计数器程序...
+程序ID: <PROGRAM_ID>
+计数器PDA地址: <PDA_ADDRESS>
+初始化交易签名: <TRANSACTION_SIGNATURE>
+计数器初始值: 0
+✅ 计数器初始化成功!
+脚本执行完成
+```
+
+**运行递增脚本（可多次运行）：**
+```bash
+npx ts-node scripts/increment.ts
+```
+
+预期输出：
+```
+开始递增计数器...
+程序ID: <PROGRAM_ID>
+计数器PDA地址: <PDA_ADDRESS>
+递增前的计数器值: 0
+递增交易签名: <TRANSACTION_SIGNATURE>
+递增后的计数器值: 1
+✅ 计数器递增成功!
+脚本执行完成
+```
+
+#### 7. 运行 Anchor 测试
 
 ```bash
 # 运行完整测试（包括启动验证器）
@@ -165,6 +265,39 @@ yarn mocha -t 1000000 --require ts-node/register tests/counter.ts
 3. **依赖版本问题**
    - 确保 Anchor 和 Solana CLI 版本兼容
    - 查看官方文档获取最新版本要求
+
+4. **502 Bad Gateway 错误**
+   - 验证器启动需要时间，等待几秒钟后重试
+   - 确保代理已关闭：`proxy_off`
+   - 检查 Solana 配置是否指向本地：`solana config set --url localhost`
+
+5. **账户已存在错误**
+   ```
+   Error: failed to send transaction: Transaction simulation failed: Error processing Instruction 0: custom program error: 0x0
+   ```
+   - 这通常表示计数器已经初始化过了
+   - 清理测试账本重新开始：`rm -rf test-ledger && solana-test-validator`
+   - 或者直接运行递增脚本
+
+6. **环境变量未设置错误**
+   ```
+   Error: ANCHOR_PROVIDER_URL is not defined
+   ```
+   - 设置必要的环境变量：
+   ```bash
+   export ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
+   export ANCHOR_WALLET=/home/user/.config/solana/id.json
+   ```
+
+7. **验证器无法启动**
+   - 检查是否有其他验证器进程在运行：`pkill -f solana-test-validator`
+   - 清理锁定的账本：`rm -rf test-ledger`
+   - 重新启动验证器
+
+8. **RPC 连接失败**
+   - 确认验证器正在运行：`solana cluster-version`
+   - 检查防火墙设置
+   - 确认端口 8899 和 8900 未被占用
 
 ## 贡献指南
 
